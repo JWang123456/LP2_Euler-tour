@@ -8,12 +8,16 @@ import cs6301.g00.Graph;
 import cs6301.g00.Graph.Edge;
 import cs6301.g00.Graph.Vertex;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 
 public class Euler {
     int VERBOSE;
     List<Graph.Edge> tour;
+    List<List<Graph.Edge>> res;
+    List<Graph.Edge> l1;
+    HashMap<Vertex, List<Graph.Edge>> map = new HashMap<>(); 
     Graph.Vertex u;
     Graph g;
     // Constructor
@@ -27,47 +31,39 @@ public class Euler {
     // To do: function to find an Euler tour
     public List<Graph.Edge> findEulerTour() {
 	findTours();
+	setVerbose(g.v.length);
 	if(VERBOSE > 9) { printTours(); }
 	stitchTours();
 	return tour;
-    }
+  }
     
-    void DFSUtil(int v, boolean visited[]) {
-    	visited[v] = false;
-    	Iterator<Edge> i = g.v[v].adj.iterator();
-    	while(i.hasNext()) {
-    		Edge e = i.next();
-    		Vertex ov = e.otherEnd(g.v[v]);
-    		int k = 0;
-    		for(k = 0; k < g.v.length; k++) {
-    			if(g.v[k].equals(ov)) {
-    				break;
-    			}
-    		}
-    		if(!visited[k]) {
-    			DFSUtil(k, visited);
-    		}
+    void DFSUtil(Graph.Vertex start) {
+    	if(start.seen) {
+    		return;
+    	}
+    	start.seen = true;
+    	for(Edge e: start.adj) {
+    		Vertex v = e.otherEnd(start);
+    		DFSUtil(v);
     	}
     }
     
-    boolean isConnected() {
-    	int V = g.v.length;
-    	boolean visited[] = new boolean[V];
-    	int i;
-    	for(i = 0; i < V; i++) {
-    		visited[i] = false;
+    boolean isStronglyConnected() {
+    	for(Vertex u: g.v) {
+    		u.seen = false;
     	}
-    	for(i = 0; i < V; i++) {
+    	int i = 0;
+    	for(i = 0; i < g.v.length; i++) {
     		if(g.v[i].adj.size() != 0) {
     			break;
     		}
     	}
-    	if(i == V) {
+    	if(i == g.v.length) {
     		return true;
     	}
-    	DFSUtil(i, visited);
-    	for(i = 0; i < V; i++) {
-    		if(visited[i] == false && g.v[i].adj.size() > 0) {
+    	DFSUtil(g.v[i]);
+    	for(i = 0; i < g.v.length; i++) {
+    		if(!g.v[i].seen && g.v[i].adj.size() > 0) {
     			return false;
     		}
     	}
@@ -81,13 +77,41 @@ public class Euler {
      * "Graph is not strongly connected"
      */
     boolean isEulerian() {
-	System.out.println("Graph is not Eulerian");
-	System.out.println("Reason: Graph is not strongly connected");
-	return false;
+    	if(isStronglyConnected() == false) {
+    		System.out.println("Reason: Graph is not strongly connected");
+    		return false;
+    	}
+    	for(int i = 0; i < g.v.length; i++) {
+    		if(g.v[i].adj.size() != g.v[i].revAdj.size()) {
+    			System.out.println("Reason: inDegree = " + g.v[i].revAdj.size() + ", outDegree = " + g.v[i].adj.size() + " at Vertex " + i);
+    			return false;
+    		}
+    	}
+    	return true;
     }
 
     // Find tours starting at vertices with unexplored edges
     void findTours() {
+    	res = new LinkedList<>();
+    	l1 = new LinkedList<>();
+    	findTours(u, l1);
+    }
+    
+    void findTours(Vertex start, List<Graph.Edge> l1) {
+    	start.count++;
+    	if(start.count > 1) {
+    		res.add(new LinkedList<>(l1));
+    		l1.clear();
+    		return;
+    	}
+    	for(Edge e: start.adj) {
+    		if(!e.seen) {
+    			e.seen = true;
+    			l1.add(e);
+    			Vertex end = e.otherEnd(start);
+    			findTours(end, l1);
+    		}
+    	}
     }
 
     /* Print tours found by findTours() using following format:
@@ -100,10 +124,33 @@ public class Euler {
      * Just use System.out.print(u) and System.out.print(e)
      */
     void printTours() {
+    	for(List<Graph.Edge> l: res) {
+    		System.out.print(l.get(0).from + ": ");
+    		for(Graph.Edge e: l) {
+    			System.out.print(e.toString());
+    		}
+    		System.out.print("\n");
+    	}
     }
 
     // Stitch tours into a single tour using the algorithm discussed in class
     void stitchTours() {
+    	for(List<Graph.Edge> l: res) {
+    		map.put(l.get(0).from, l);
+    	}
+    	explore(res.get(0).get(0).from);
+    }
+    
+    void explore(Vertex u) {
+    	u.explored = true;
+    	Vertex tmp = u;
+    	for(Edge e: map.get(u)) {
+    		tour.add(e);
+    		tmp = e.otherEnd(tmp);
+    		if(!tmp.explored) {
+    			explore(tmp);
+    		}
+    	}	
     }
 
     void setVerbose(int v) {

@@ -25,7 +25,10 @@ public class Graph implements Iterable<Graph.Vertex> {
     public static class Vertex implements Iterable<Edge> {
 	int name; // name of the vertex
 	public List<Edge> adj; // adjacency list; use LinkedList or ArrayList
-	List<Edge> revAdj;
+	public List<Edge> revAdj;
+	public boolean seen;
+	public int count = 0;
+	public boolean explored;;
 
 	/**
 	 * Constructor for the vertex
@@ -67,9 +70,10 @@ public class Graph implements Iterable<Graph.Vertex> {
      */
 
     public static class Edge {
-	Vertex from; // head vertex
+	public Vertex from; // head vertex
 	Vertex to; // tail vertex
 	int weight;// weight of edge
+	public boolean seen;
 
 	/**
 	 * Constructor for Edge
